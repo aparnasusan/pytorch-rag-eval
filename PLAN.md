@@ -31,18 +31,19 @@ How to use this file: tick `[x]` when a task is done, and add a line to the **Ch
 ## Phase 1 — Corpus (Week 1, days 2–3)
 **Approach: build from the PyTorch package + GitHub — no website downloading.**
 - [x] Pick one PyTorch release and pin it everywhere (package version = git tag) — **2.15.0** / `v2.15.0`
-- [ ] Install the pinned CPU build (`pip install torch==<version>`, ~200 MB)
-- [ ] **API reference:** extract docstrings locally with Python's `inspect` (no web requests)
-  - [ ] `torch.Tensor` / tensor ops
-  - [ ] `torch.nn`
-  - [ ] `torch.optim`
-  - [ ] `torch.utils.data`
-  - [ ] `torch.autograd`
-- [ ] **Notes pages** (CUDA semantics, reproducibility, AMP, …): `.rst` files from `pytorch/pytorch` at the pinned tag — **sparse checkout of `docs/source/notes` only** (the full repo is very large)
+- [x] Install the pinned CPU build (`pip install torch==<version>`, ~200 MB)
+- [x] **API reference:** extract docstrings locally with Python's `inspect` (no web requests) — object list taken from the docs pages' `autosummary`/`auto*` directives, so the corpus matches what docs.pytorch.org documents
+  - [x] `torch.Tensor` / tensor ops
+  - [x] `torch.nn`
+  - [x] `torch.optim`
+  - [x] `torch.utils.data`
+  - [x] `torch.autograd`
+- [x] **Notes pages** (CUDA semantics, reproducibility, AMP, …) from `pytorch/pytorch` at the pinned commit — sparse checkout of `docs/source` (22 MB). Docs are now **MyST Markdown** (`.md` with `{eval-rst}` blocks), not `.rst`
 - [ ] **Tutorials:** a few beginner tutorials from `pytorch/tutorials` repo (one git download) — mostly **sphinx-gallery `.py` files**, not `.rst`; needs its own parser (comment blocks → text, code → code blocks)
-- [ ] Clean docstrings / reStructuredText / sphinx-gallery into plain text (keep code blocks and headings)
-- [ ] Generate the matching docs.pytorch.org URL for each item (for citations)
-- [ ] Store each source document's full cleaned text with a stable `doc_id` + section anchors (so gold evidence can be stored as spans independent of chunking)
+- [x] Clean docstrings / reStructuredText / MyST into plain text (keep code blocks and headings)
+- [ ] Clean sphinx-gallery tutorial `.py` files
+- [x] Generate the matching docs.pytorch.org URL for each item (for citations) — per-section URLs too
+- [x] Store each source document's full cleaned text with a stable `doc_id` + section anchors (so gold evidence can be stored as spans independent of chunking)
 - [ ] Chunker with metadata (source URL, `doc_id`, section, object name, chunk ID, **char start/end offsets into the source doc**)
 - [ ] Corpus manifest (PyTorch version, git commits, item count, chunk count, checksum, build date)
 - [ ] **Deliverable:** `data/corpus/docs.jsonl` (cleaned source docs) + `data/corpus/chunks.jsonl` (~2–5k chunks)
@@ -216,3 +217,4 @@ Python 3.11+ · LiteLLM · `bge-small` embeddings · Chroma · `rank_bm25` · `b
 | 2026-11-17 | Plan review fixes. **Gold labels:** stored as doc spans `{doc_id, char_start, char_end}` instead of chunk IDs so the Phase 5 chunk-size sweep doesn't invalidate them; chunks carry char offsets; corpus adds `docs.jsonl`. **CI gates:** split into a coarse PR smoke gate (hard floors + large noise-calibrated drop) and a fine-grained paired nightly gate on the full dev set (2-point rule only when the paired CI excludes zero). **Kappa:** measured per nugget, not on fractional scores. **Stats:** paired bootstrap for config comparisons. **New open decisions:** generator temperature (what repeats measure), judge tiers (cheap for sweeps / strong for validation + final), outdated-SO-question handling (new `outdated` label + error-taxonomy class). **Fixes:** generator provider decision moved to Phase 2; tiered grading made explicit in Phase 4. **Practical:** sparse checkout for `pytorch/pytorch` notes; sphinx-gallery `.py` parser for tutorials; Stack Exchange app key + 100-ID batching; CC BY-SA 4.0 license on the published benchmark; forum terms check; demo rate limit + spend cap; cost estimate caveat. **Scope:** forum collector, docs PRs, and dashboard marked optional. |
 | 2026-11-17 | Phase 0 done. Git repo (`main`), src layout, `pyproject.toml` (hatchling; core deps + optional groups `ingest`/`rag`/`collect`/`eval`/`app`/`dev`), `config.yaml` (generator/judge models and `torch_version` left `null` pending Open Decisions), `.env.example`, `src/ragbench/config.py` + `llm.py` (`complete`/`acomplete` via LiteLLM; returns text, tokens, cost, latency; per-role config for generator vs. judge). Ruff for lint + format. pytest with LiteLLM stubbed (no keys needed); `live` marker reserved for real-API tests. Python 3.12 venv in `.venv`. Project stays in the OneDrive folder for now. |
 | 2026-11-17 | Pinned PyTorch **2.15.0** (latest stable on PyPI, released 2026-10-28; git tag `v2.15.0` @ `31a77fc`). Recorded in `config.yaml` (`corpus.torch_version`, tag, commit) and the `ingest` extra in `pyproject.toml` (CPU build via the PyTorch wheel index). `pytorch/tutorials` has no matching release tags, so pin it by commit SHA at download time and record it in the corpus manifest. |
+| 2026-11-17 | Phase 1 docs extraction. The torch 2.15.0 wheel was built from `v2.15.0-rc10` (`d0f2af8`); the final tag adds only a lint change, so the pinned commit is now `d0f2af8` (what the docstrings actually come from). PyTorch docs turned out to be **MyST Markdown**, not `.rst`, so the plan's "rst notes" step became a MyST + eval-rst parser. Design: the docs pages' `autosummary`/`auto*` directives define *which* objects are in the corpus and their URLs (`generated/<name>.html` or `<page>.html#<name>`); docstrings come from the installed torch. Docs pages' own prose (e.g. optim "How to use an optimizer") is indexed too. Class docs include own members only (no inherited copies). Objects with no docstring (154, mostly internal ops) are dropped. Result: `data/corpus/docs.jsonl` = 1,638 docs (8 pages, 1,606 API objects, 24 notes), ~2.26M chars, 0 unresolved names; report in `data/corpus/ingest_report.json`. Code: `src/ragbench/ingest/{fetch,rst,pages,api,sections,build_docs}.py`; 16 unit tests. |

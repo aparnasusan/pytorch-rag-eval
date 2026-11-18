@@ -21,6 +21,7 @@ dependencies = [
 #   pip install -e ".[ingest]" --extra-index-url https://download.pytorch.org/whl/cpu
 ingest = [
     "torch==2.15.0",
+    "numpy>=1.26",
     "docutils>=0.21",
 ]
 # Phase 2 / 5: retrieval stack (embeddings + reranker run locally)

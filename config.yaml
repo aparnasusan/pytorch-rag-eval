@@ -19,7 +19,24 @@ llm:
 corpus:
   torch_version: "2.15.0"  # pinned release (PyPI 2026-10-28); git tag = v2.15.0
   torch_git_tag: v2.15.0
-  torch_git_commit: 31a77fc9c0a7c6fff15a1ff58c743f53b1a9d457
+  # Commit the wheel was built from (torch.version.git_version = tag v2.15.0-rc10).
+  # The final v2.15.0 tag (31a77fc) adds only a pyproject.toml lint change; docs are identical.
+  torch_git_commit: d0f2af8b66b20da4baa50644c0cd3f887a2eae2e
+  raw_dir: data/raw
+  docs_base_url: https://docs.pytorch.org/docs/2.15/
+  # API pages (paths under pytorch/docs/source). Each page's prose is indexed, and every
+  # object it documents (autosummary / auto*) becomes its own API doc from local docstrings.
+  api_pages:
+    - torch.md            # top-level tensor ops
+    - tensors.md          # torch.Tensor
+    - nn.md
+    - nn.functional.md
+    - nn.init.md
+    - optim.md
+    - data.md             # torch.utils.data
+    - autograd.md
+  notes_glob: notes/*    # CUDA semantics, reproducibility, AMP, ... (.md and .rst)
+  report_path: data/corpus/ingest_report.json
   docs_path: data/corpus/docs.jsonl
   chunks_path: data/corpus/chunks.jsonl
   manifest_path: data/corpus/manifest.json

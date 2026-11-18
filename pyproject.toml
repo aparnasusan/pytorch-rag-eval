@@ -23,6 +23,7 @@ ingest = [
     "torch==2.15.0",
     "numpy>=1.26",
     "docutils>=0.21",
+    "tokenizers>=0.20",  # embedder's tokenizer for chunk token budgets
 ]
 # Phase 2 / 5: retrieval stack (embeddings + reranker run locally)
 rag = [

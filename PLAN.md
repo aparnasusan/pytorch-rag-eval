@@ -39,14 +39,14 @@ How to use this file: tick `[x]` when a task is done, and add a line to the **Ch
   - [x] `torch.utils.data`
   - [x] `torch.autograd`
 - [x] **Notes pages** (CUDA semantics, reproducibility, AMP, …) from `pytorch/pytorch` at the pinned commit — sparse checkout of `docs/source` (22 MB). Docs are now **MyST Markdown** (`.md` with `{eval-rst}` blocks), not `.rst`
-- [ ] **Tutorials:** a few beginner tutorials from `pytorch/tutorials` repo (one git download) — mostly **sphinx-gallery `.py` files**, not `.rst`; needs its own parser (comment blocks → text, code → code blocks)
+- [x] **Tutorials:** 22 beginner tutorials from `pytorch/tutorials` @ `5277794` (sparse checkout of `beginner_source/`), chosen to match the SO question topics — list in `config.yaml` `corpus.tutorials`; sphinx-gallery `.py` parser in `ingest/gallery.py`
 - [x] Clean docstrings / reStructuredText / MyST into plain text (keep code blocks and headings)
-- [ ] Clean sphinx-gallery tutorial `.py` files
+- [x] Clean sphinx-gallery tutorial `.py` files
 - [x] Generate the matching docs.pytorch.org URL for each item (for citations) — per-section URLs too
 - [x] Store each source document's full cleaned text with a stable `doc_id` + section anchors (so gold evidence can be stored as spans independent of chunking)
-- [ ] Chunker with metadata (source URL, `doc_id`, section, object name, chunk ID, **char start/end offsets into the source doc**)
-- [ ] Corpus manifest (PyTorch version, git commits, item count, chunk count, checksum, build date)
-- [ ] **Deliverable:** `data/corpus/docs.jsonl` (cleaned source docs) + `data/corpus/chunks.jsonl` (~2–5k chunks)
+- [x] Chunker with metadata (source URL, `doc_id`, section, object name, chunk ID, **char start/end offsets into the source doc**)
+- [x] Corpus manifest (PyTorch version, git commits, item count, chunk count, checksum, build date)
+- [x] **Deliverable:** `data/corpus/docs.jsonl` (1,660 docs) + `data/corpus/chunks.jsonl` (3,243 chunks @ 512) — build with `python -m ragbench.ingest`
 
 ## Phase 2 — Baseline RAG (Week 1, days 4–5)
 - [ ] Local embeddings (`bge-small`)
@@ -74,7 +74,7 @@ How to use this file: tick `[x]` when a task is done, and add a line to the **Ch
   - [ ] nuggets (confirmed/edited)
   - [ ] **gold evidence spans** (confirmed): `{doc_id, char_start, char_end}` — **not chunk IDs**, so labels survive re-chunking. A chunk counts as relevant if it overlaps a gold span.
   - [ ] `answerable` flag (unanswerable → refusal tests)
-  - [ ] `outdated` flag (accepted answer relies on deprecated/changed API vs. the pinned docs; handle per Open Decision)
+  - [ ] `outdated` flag (accepted answer relies on deprecated/changed API vs. the pinned docs; handle per Open Decision) — will matter: the SO questions are mostly 2018–2022 (median ≈ late 2020)
   - [ ] slices: category (API usage / debugging / concepts / performance), source, docs section, length
 - [ ] Split: **dev (~70%)** for experiments / **locked test (~30%)** for final numbers only
 - [ ] Attribution for Stack Overflow content (CC BY-SA)
@@ -117,7 +117,7 @@ How to use this file: tick `[x]` when a task is done, and add a line to the **Ch
 
 ## Phase 5 — Experiments & Error Analysis (Week 3) — dev set only
 Sweeps use the cheap judge; re-score the top 2–3 configs with the strong judge before picking a winner.
-- [ ] Chunk size: 256 / 512 / 1024 tokens (gold spans make recall comparable across sizes)
+- [ ] Chunk size: 128 / 256 / 512 tokens (all fit bge-small's 512-token window; gold spans make recall comparable across sizes) — files already built: `chunks_128.jsonl`, `chunks_256.jsonl`, `chunks.jsonl`
 - [ ] Hybrid search (BM25 + embeddings)
 - [ ] Reranker on/off (`bge-reranker`)
 - [ ] Top-k: 3 / 5 / 10
@@ -218,3 +218,6 @@ Python 3.11+ · LiteLLM · `bge-small` embeddings · Chroma · `rank_bm25` · `b
 | 2026-11-17 | Phase 0 done. Git repo (`main`), src layout, `pyproject.toml` (hatchling; core deps + optional groups `ingest`/`rag`/`collect`/`eval`/`app`/`dev`), `config.yaml` (generator/judge models and `torch_version` left `null` pending Open Decisions), `.env.example`, `src/ragbench/config.py` + `llm.py` (`complete`/`acomplete` via LiteLLM; returns text, tokens, cost, latency; per-role config for generator vs. judge). Ruff for lint + format. pytest with LiteLLM stubbed (no keys needed); `live` marker reserved for real-API tests. Python 3.12 venv in `.venv`. Project stays in the OneDrive folder for now. |
 | 2026-11-17 | Pinned PyTorch **2.15.0** (latest stable on PyPI, released 2026-10-28; git tag `v2.15.0` @ `31a77fc`). Recorded in `config.yaml` (`corpus.torch_version`, tag, commit) and the `ingest` extra in `pyproject.toml` (CPU build via the PyTorch wheel index). `pytorch/tutorials` has no matching release tags, so pin it by commit SHA at download time and record it in the corpus manifest. |
 | 2026-11-17 | Phase 1 docs extraction. The torch 2.15.0 wheel was built from `v2.15.0-rc10` (`d0f2af8`); the final tag adds only a lint change, so the pinned commit is now `d0f2af8` (what the docstrings actually come from). PyTorch docs turned out to be **MyST Markdown**, not `.rst`, so the plan's "rst notes" step became a MyST + eval-rst parser. Design: the docs pages' `autosummary`/`auto*` directives define *which* objects are in the corpus and their URLs (`generated/<name>.html` or `<page>.html#<name>`); docstrings come from the installed torch. Docs pages' own prose (e.g. optim "How to use an optimizer") is indexed too. Class docs include own members only (no inherited copies). Objects with no docstring (154, mostly internal ops) are dropped. Result: `data/corpus/docs.jsonl` = 1,638 docs (8 pages, 1,606 API objects, 24 notes), ~2.26M chars, 0 unresolved names; report in `data/corpus/ingest_report.json`. Code: `src/ragbench/ingest/{fetch,rst,pages,api,sections,build_docs}.py`; 16 unit tests. |
+| 2026-11-17 | **Tutorials:** 22 files from `pytorch/tutorials` @ `5277794` (no release tags → commit pin), chosen from a keyword topic count over all 10.7k SO questions (data/DataLoader 30%, model building 29%, vision/fine-tuning 27%, tensor ops 26%, device/CUDA 17%, save/load 13%, loss 11%, install 10%, autograd 10%, …). Install / TF / Lightning / HF / ONNX / distributed deliberately not covered (→ refusal or docs-gap cases). `pytorch_with_examples.rst` dropped (pulls in 8 scripts that have their own pages); its custom-autograd-Function script included directly. Parser `ingest/gallery.py` converts a gallery script to one RST doc (code → `code-block`), so heading levels stay consistent; hidden `INVISIBLE_CODE_BLOCK`s and nav breadcrumbs dropped. |
+| 2026-11-17 | **Chunk sweep changed to 128 / 256 / 512** (was 256 / 512 / 1024): bge-small's window is 512 tokens, so 1024 chunks would be truncated when embedded. The chunker refuses sizes above `retrieval.embedding_max_tokens`. |
+| 2026-11-17 | **Chunker + manifest; Phase 1 done.** Tokens counted with the embedder's own tokenizer (`tokenizers`, bge-small). Section-aware: tiny sections (< 50 tokens, e.g. heading-only parents) merge into the next; blocks = paragraphs + whole code fences; oversize blocks → lines → equal-size token windows; overlap = whole trailing blocks ≤ 64 tokens; chunks < 50 tokens merge into a neighbour when the union fits. Budget leaves room for the `"title > section"` context header + [CLS]/[SEP]. `chunk_id = doc_id@start-end`; `chunk.text == doc.text[start:end]` always. Results: 1,660 docs → 3,243 chunks @512 (median 223 tokens), 5,171 @256, 12,638 @128; 0 slice mismatches, 0 over the window, 100% text coverage. Fixed non-determinism (signature defaults printed memory addresses, e.g. `<function relu at 0x…>`); two full rebuilds now give identical sha256s. `data/corpus/manifest.json` records sources, commits, counts, token stats and checksums. Entry point: `python -m ragbench.ingest [--chunk-size N] [--skip-docs]`. 35 tests. |

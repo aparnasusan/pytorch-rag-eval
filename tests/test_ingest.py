@@ -217,3 +217,60 @@ def test_render_api_class_has_own_members_only():
     assert "forward" in members
     assert "state_dict" not in members  # inherited from Module
     assert torch.nn.Module.forward.__doc__ is None or "Define the computation" not in text
+
+
+def test_signature_has_no_memory_addresses():
+    full, obj = resolve("TransformerEncoderLayer", "torch.nn")
+    text, _ = render_api(full, obj)
+    assert "<function relu>" in text
+    assert " at 0x" not in text
+
+
+# ---------------------------------------------------------------- sphinx-gallery tutorials
+
+GALLERY = '''# -*- coding: utf-8 -*-
+"""
+`Intro <intro.html>`_ ||
+**Data** ||
+`Model <model.html>`_
+
+Datasets
+========
+
+Some ``Dataset`` intro.
+"""
+
+import torch
+
+######################################################################
+# Loading
+# -------
+#
+# See :class:`torch.utils.data.DataLoader`.
+
+loader = torch.utils.data.DataLoader([1, 2])
+# sphinx_gallery_thumbnail_number = 2
+
+# %%%%%%INVISIBLE_CODE_BLOCK%%%%%%
+secret = 1
+# %%%%%%INVISIBLE_CODE_BLOCK%%%%%%
+
+# %%
+# Next part
+# ---------
+# Done.
+'''
+
+
+def test_parse_gallery():
+    from ragbench.ingest.gallery import parse_gallery
+
+    out = parse_gallery(GALLERY)
+    assert out.startswith("# Datasets\n\nSome `Dataset` intro.")
+    assert "||" not in out and "intro.html" not in out
+    assert "```python\nimport torch\n```" in out
+    assert "## Loading" in out and "## Next part" in out  # same level across blocks
+    assert "See `torch.utils.data.DataLoader`." in out
+    assert "loader = torch.utils.data.DataLoader([1, 2])" in out
+    assert "secret" not in out
+    assert "sphinx_gallery" not in out

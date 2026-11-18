@@ -37,15 +37,46 @@ corpus:
     - autograd.md
   notes_glob: notes/*    # CUDA semantics, reproducibility, AMP, ... (.md and .rst)
   report_path: data/corpus/ingest_report.json
+  # pytorch/tutorials has no release tags; pinned to main as of 2026-11-17.
+  tutorials_git_commit: 5277794075fd393cf24f139ac978f96bc06b5aa3
+  tutorials_base_url: https://docs.pytorch.org/tutorials/
+  # Chosen to match the Stack Overflow question topics (see PLAN.md Change Log).
+  # Paths under pytorch/tutorials/beginner_source/.
+  tutorials:
+    - basics/intro.py
+    - basics/quickstart_tutorial.py
+    - basics/tensorqs_tutorial.py
+    - basics/data_tutorial.py
+    - basics/transforms_tutorial.py
+    - basics/buildmodel_tutorial.py
+    - basics/autogradqs_tutorial.py
+    - basics/optimization_tutorial.py
+    - basics/saveloadrun_tutorial.py
+    - blitz/tensor_tutorial.py
+    - blitz/autograd_tutorial.py
+    - blitz/neural_networks_tutorial.py
+    - blitz/cifar10_tutorial.py
+    - introyt/tensors_deeper_tutorial.py
+    - introyt/trainingyt.py
+    - nn_tutorial.py
+    - data_loading_tutorial.py
+    - saving_loading_models.py
+    - transfer_learning_tutorial.py
+    - nlp/sequence_models_tutorial.py
+    - understanding_leaf_vs_nonleaf_tutorial.py
+    - examples_autograd/polynomial_custom_function.py
+  chunks_path_sized: data/corpus/chunks_{size}.jsonl  # non-default sizes (Phase 5 sweep)
   docs_path: data/corpus/docs.jsonl
   chunks_path: data/corpus/chunks.jsonl
   manifest_path: data/corpus/manifest.json
 
 retrieval:
   embedding_model: BAAI/bge-small-en-v1.5
+  embedding_max_tokens: 512  # bge-small window (incl. [CLS]/[SEP]); chunks must fit
   index_path: data/index/chroma
-  chunk_size_tokens: 512
-  chunk_overlap_tokens: 64
+  chunk_size_tokens: 512     # default; Phase 5 sweep: 128 / 256 / 512
+  chunk_overlap_tokens: 64   # whole blocks only (paragraphs / code lines)
+  min_chunk_tokens: 50       # smaller sections/tails merge into a neighbour
   top_k: 5
 
 paths:

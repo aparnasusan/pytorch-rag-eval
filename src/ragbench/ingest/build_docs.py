@@ -21,7 +21,8 @@ from typing import Any
 
 from ragbench.config import PROJECT_ROOT, get_config
 from ragbench.ingest.api import render_api, resolve
-from ragbench.ingest.fetch import fetch_pytorch_docs
+from ragbench.ingest.fetch import fetch_pytorch_docs, fetch_tutorials
+from ragbench.ingest.gallery import parse_gallery
 from ragbench.ingest.pages import ApiEntry, parse_page
 from ragbench.ingest.sections import find_sections
 
@@ -85,6 +86,28 @@ def build_api_doc(entry: ApiEntry, page_rel: str, base: str, version: str):
     }
 
 
+def build_tutorial_doc(path: Path, rel: str, base: str, commit: str, version: str):
+    """rel is relative to beginner_source/, e.g. 'basics/data_tutorial.py'."""
+    source = path.read_text(encoding="utf-8")
+    text = parse_page(source, is_rst=True).text if path.suffix == ".rst" else parse_gallery(source)
+    stem = "beginner/" + rel.rsplit(".", 1)[0]
+    url = f"{base}{stem}.html"
+    sections = find_sections(text)
+    title = next((s["title"] for s in sections if s["level"] == 1), rel)
+    return {
+        "doc_id": f"tutorial:{stem}",
+        "kind": "tutorial",
+        "title": title,
+        "url": url,
+        "source": f"pytorch/tutorials/beginner_source/{rel}@{commit[:7]}",
+        "object_name": None,
+        "page": rel,
+        "torch_version": version,
+        "text": text,
+        "sections": _with_section_urls(sections, url),
+    }
+
+
 def build(config: dict[str, Any] | None = None) -> dict[str, Any]:
     import torch
 
@@ -97,8 +120,13 @@ def build(config: dict[str, Any] | None = None) -> dict[str, Any]:
 
     records: list[dict[str, Any]] = []
     seen: set[str] = set()
-    report: dict[str, Any] = {"unresolved": [], "empty_docstring": [], "skipped_pages": []}
-    report["warnings"] = []
+    report: dict[str, Any] = {
+        "unresolved": [],
+        "empty_docstring": [],
+        "skipped_pages": [],
+        "missing_tutorials": [],
+        "warnings": [],
+    }
 
     def add(record: dict[str, Any]) -> None:
         if record["doc_id"] not in seen:
@@ -132,6 +160,15 @@ def build(config: dict[str, Any] | None = None) -> dict[str, Any]:
         else:
             report["skipped_pages"].append(rel)
 
+    tut_commit = cfg["tutorials_git_commit"]
+    tut_src = fetch_tutorials(PROJECT_ROOT / cfg["raw_dir"], tut_commit)
+    for rel in cfg["tutorials"]:
+        path = tut_src / rel
+        if not path.exists():
+            report["missing_tutorials"].append(rel)
+            continue
+        add(build_tutorial_doc(path, rel, cfg["tutorials_base_url"], tut_commit, version))
+
     out_path = PROJECT_ROOT / cfg["docs_path"]
     out_path.parent.mkdir(parents=True, exist_ok=True)
     with out_path.open("w", encoding="utf-8", newline="\n") as f:
@@ -149,7 +186,7 @@ def build(config: dict[str, Any] | None = None) -> dict[str, Any]:
 def main() -> None:
     report = build()
     print(json.dumps({k: report[k] for k in ("counts", "total_docs", "total_chars")}, indent=2))
-    for key in ("unresolved", "empty_docstring", "skipped_pages", "warnings"):
+    for key in ("unresolved", "empty_docstring", "skipped_pages", "missing_tutorials", "warnings"):
         print(f"{key}: {len(report[key])}")
 
 

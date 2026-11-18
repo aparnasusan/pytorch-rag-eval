@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import importlib
 import inspect
+import re
 import warnings
 from typing import Any
 
@@ -49,11 +50,16 @@ def resolve(name: str, module: str | None) -> tuple[str, Any] | None:
     return None
 
 
+_MEMORY_ADDRESS = re.compile(r" (?:object )?at 0x[0-9a-fA-F]+>")
+
+
 def _signature(obj: Any) -> str | None:
     try:
-        return str(inspect.signature(obj))
+        sig = str(inspect.signature(obj))
     except (TypeError, ValueError):
         return None
+    # Defaults like <function relu at 0x7f...> change every run; keep the corpus deterministic.
+    return _MEMORY_ADDRESS.sub(">", sig)
 
 
 def _own_doc(member: Any) -> str:

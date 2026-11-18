@@ -6,6 +6,7 @@ import subprocess
 from pathlib import Path
 
 PYTORCH_REPO = "https://github.com/pytorch/pytorch"
+TUTORIALS_REPO = "https://github.com/pytorch/tutorials"
 
 
 def _git(cwd: Path, *args: str) -> str:
@@ -39,3 +40,9 @@ def fetch_pytorch_docs(raw_dir: Path, commit: str) -> Path:
     """Return the path to docs/source of pytorch/pytorch at `commit`."""
     repo_dir = fetch_sparse(raw_dir / "pytorch", PYTORCH_REPO, commit, ["docs/source"])
     return repo_dir / "docs" / "source"
+
+
+def fetch_tutorials(raw_dir: Path, commit: str) -> Path:
+    """Return the path to beginner_source/ of pytorch/tutorials at `commit`."""
+    repo_dir = fetch_sparse(raw_dir / "tutorials", TUTORIALS_REPO, commit, ["beginner_source"])
+    return repo_dir / "beginner_source"
